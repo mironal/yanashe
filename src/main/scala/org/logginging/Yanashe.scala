@@ -13,7 +13,9 @@ object Yanashe extends App {
   def waitInput(c: String) : Unit = {
     c match {
       case "q" =>
-        twitterStream.shutdown
+       twitterStream.shutdown
+       case "r" =>
+        listener.requestReloadMatcher
       case _ => waitInput(readLine())
     }
   }

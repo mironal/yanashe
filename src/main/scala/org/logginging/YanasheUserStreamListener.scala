@@ -10,13 +10,30 @@ import scala.collection.JavaConverters._
 class YanasheUserStreamListener extends UserStreamAdapter {
 
   val twitter = TwitterFactory.getSingleton();
+  val myId = twitter.getId
   val rand = scala.util.Random
+  val reload = new java.util.concurrent.atomic.AtomicBoolean
 
-  val matcher = readJson("/response.json").convertTo[List[ResponseMatcher]]
+  var matcher = reloadMatcher()//readJson("/response.json").convertTo[List[ResponseMatcher]]
+
+  def requestReloadMatcher() {
+    reload.set(true)
+  }
+
+  private def reloadMatcher() = {
+    try{
+     readJson("/response.json").convertTo[List[ResponseMatcher]]
+   }catch{
+     case e =>
+      /* 読み込みに失敗したら空のリストを返す. */
+      printMsg("json reload error" + e.getMessage)
+      List[ResponseMatcher]()
+   }
+  }
 
   val tokenizer = Tokenizer.builder().build()
 
-  def takeResponse(status:Status) = {
+  private def takeResponse(status:Status) = {
     def getText(status:Status) = status.getText
     def takeResponseList(token:Seq[String]) =
       matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
@@ -55,13 +72,12 @@ class YanasheUserStreamListener extends UserStreamAdapter {
     }
   }
 
-  override def onStatus(status:Status) = {
+  private def printMsg(msg:String) = {
+    val date = new java.util.Date()
+    println("[" + date + "]" + msg)
+  }
 
-    def printMsg(msg:String) = {
-      val date = new java.util.Date()
-      println("[" + date + "]" + msg)
-    }
-
+  override def onStatus(status:Status) {
     /*
      * statusは必ず存在するが、replyは存在するかどうかわからないので
      * Optionにする.
@@ -98,8 +114,27 @@ class YanasheUserStreamListener extends UserStreamAdapter {
       printMsg("time diff => " + makeTimes(end - start))
     }
 
+
+    /* Retweetや自分のツイートには反応しない.*/
+    if(status.isRetweet){
+      printMsg("is Retweet")
+      return
+    }
+    if(status.getUser.getId == myId){
+      printMsg("tweet by me")
+      return
+    }
+
+
     /* 処理開始時刻をキャプチャ. */
     val printTime = captureTime(System.nanoTime)_
+
+    /* matcher再読み込み. */
+    if(reload.get){
+      printMsg("reload matcher")
+      matcher = reloadMatcher()
+      reload.set(false)
+    }
 
     val printStatus = takeResponse(status) match {
       case Some(response) =>
