@@ -103,7 +103,7 @@ class YanasheUserStreamListener extends UserStreamAdapter {
       printMsg(msg)
     }
 
-    def captureTime(start:Long)(end:Long)() = {
+    def captureTime(start:Long)(end:Long) = {
       def makeTimes(diffNs: Long) = {
         Map(
           "ns" -> diffNs,
