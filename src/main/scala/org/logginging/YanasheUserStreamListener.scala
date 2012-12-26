@@ -7,7 +7,7 @@ import JsonProtocol._
 import org.atilika.kuromoji._
 import scala.collection.JavaConverters._
 
-class YanasheUserStreamListener extends UserStreamAdapter {
+class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
 
   val twitter = TwitterFactory.getSingleton();
   val myId = twitter.getId
@@ -26,7 +26,7 @@ class YanasheUserStreamListener extends UserStreamAdapter {
    }catch{
      case e =>
       /* 読み込みに失敗したら空のリストを返す. */
-      printMsg("json reload error" + e.getMessage)
+      error("json load error." + e.getMessage)
       List[ResponseMatcher]()
    }
   }
@@ -72,66 +72,54 @@ class YanasheUserStreamListener extends UserStreamAdapter {
     }
   }
 
-  private def printMsg(msg:String) = {
-    val date = new java.util.Date()
-    println("[" + date + "]" + msg)
+  /*
+   * statusは必ず存在するが、replyは存在するかどうかわからないので
+   * Optionにする.
+   */
+  def captureStatus(reply:Option[Status])(status:Status) = {
+    // 必要な物だけ抽出.
+    def formatStatus(status:Option[Status]) = {
+      status match {
+        case Some(s) =>
+        Map(
+          "text" -> s.getText,
+          "createdAd" -> s.getCreatedAt.toString,
+          "id" -> s.getId.toString,
+          "user" -> s.getUser.getScreenName,
+          "userId" -> s.getUser().getId.toString
+        ).mkString(", ")
+        case None => "None"
+      }
+    }
+    val msg = Map(
+      "status" -> formatStatus(Some(status)),
+      "reply" -> formatStatus(reply)
+    ).mkString(", ")
+    info(msg)
+  }
+
+
+  override def onFriendList(friendIds: Array[Long]) = {
   }
 
   override def onStatus(status:Status) {
-    /*
-     * statusは必ず存在するが、replyは存在するかどうかわからないので
-     * Optionにする.
-     */
-    def captureStatus(reply:Option[Status])(status:Status) = {
-      // 必要な物だけ抽出.
-      def formatStatus(status:Option[Status]) = {
-        status match {
-          case Some(s) =>
-          Map(
-            "text" -> s.getText,
-            "createdAd" -> s.getCreatedAt.toString,
-            "id" -> s.getId.toString,
-            "userId" -> s.getUser().getId.toString
-          ).mkString(", ")
-          case None => "None"
-        }
-      }
-      val msg = Map(
-        "status" -> formatStatus(Some(status)),
-        "reply" -> formatStatus(reply)
-      ).mkString(", ")
-      printMsg(msg)
-    }
-
-    def captureTime(start:Long)(end:Long) = {
-      def makeTimes(diffNs: Long) = {
-        Map(
-          "ns" -> diffNs,
-          "us" -> diffNs / 1000,
-          "ms" -> diffNs / 1000000
-        ).mkString(", ")
-      }
-      printMsg("time diff => " + makeTimes(end - start))
-    }
-
 
     /* Retweetや自分のツイートには反応しない.*/
     if(status.isRetweet){
-      printMsg("is Retweet")
+      info("is Retweet")
       return
     }
     if(status.getUser.getId == myId){
-      printMsg("tweet by me")
+      info("tweet by me")
       return
     }
 
-
     /* 処理開始時刻をキャプチャ. */
-    val printTime = captureTime(System.nanoTime)_
+    val capturedStart = captureTime(System.nanoTime)_
 
     /* matcher再読み込み. */
     if(reload.get){
-      printMsg("reload matcher")
+      info("reload matcher")
       matcher = reloadMatcher()
       reload.set(false)
     }
@@ -139,19 +127,16 @@ class YanasheUserStreamListener extends UserStreamAdapter {
     val printStatus = takeResponse(status) match {
       case Some(response) =>
         captureStatus(reply(response, status))_
-      case None => /* ignore */
+      case None =>
         captureStatus(None)_
     }
-
-    /*
-      処理に掛かった時間を表示.
-      標準出力に掛かった時間は含めたくないので
-      このタイミングで実行.
-     */
-    printTime(System.nanoTime)
+    /* 処理終了時刻をキャプチャ. */
+    val capturedTime = capturedStart(System.nanoTime)
 
     /* statusとかの情報を表示. */
     printStatus(status)
+
+    info(capturedTime("diff time => "))
   }
 }
 
