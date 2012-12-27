@@ -35,11 +35,14 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
 
   private def takeResponse(status:Status) = {
     def getText(status:Status) = status.getText
-    def takeResponseList(token:Seq[String]) =
-      matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
+    def takeResponseList(token:Seq[Token]) =
+      matcher.filter(_.matchMeAny(token.map(_.getReading))).map(_.responses).flatten
+    def formatToken(tokens: Seq[Token]) = {
+      tokens.map(_.getAllFeatures).mkString("; ")
+    }
     def splitToken(tweet:String) = {
-      val token = tokenizer.tokenize(tweet).asScala.map(_.getReading).filter(_ != null)
-      info("token => " + token.mkString(", "))
+      val token = tokenizer.tokenize(tweet).asScala
+      info("[token] => " + formatToken(token))
       token
     }
     def randomPickup(list:Seq[String]) = {
