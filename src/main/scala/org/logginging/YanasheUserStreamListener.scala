@@ -104,15 +104,27 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
     info(msg)
   }
 
+  private def isMe(user: User) : Boolean = {
+    user.getId == myId
+  }
 
   override def onFriendList(friendIds: Array[Long]) {
     info("onFriendList size:" + friendIds.size)
     friendIds.foreach(info)
   }
 
+
   override def onFollow(source: User, followedUser: User) {
     info("onFollow => source : @" + source.getScreenName +
                     " target : @" + followedUser.getScreenName)
+    if(isMe(followedUser)){
+      info("follow me")
+      try{
+        twitter.createFriendship(source.getId)
+      }catch{
+        case e => error(e.getMessage)
+      }
+    }
   }
 
   override def onStatus(status:Status) {
@@ -122,7 +134,7 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
       info("is Retweet")
       return
     }
-    if(status.getUser.getId == myId){
+    if(isMe(status.getUser)){
       info("tweet by me")
       return
     }
