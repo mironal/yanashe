@@ -14,7 +14,7 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
   val rand = scala.util.Random
   val reload = new java.util.concurrent.atomic.AtomicBoolean
 
-  var matcher = reloadMatcher()//readJson("/response.json").convertTo[List[ResponseMatcher]]
+  var matcher = reloadMatcher()
 
   def requestReloadMatcher() {
     reload.set(true)
@@ -37,8 +37,11 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
     def getText(status:Status) = status.getText
     def takeResponseList(token:Seq[String]) =
       matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
-    def splitToken(tweet:String) =
-      tokenizer.tokenize(tweet).asScala.map(_.getReading).filter(_ != null)
+    def splitToken(tweet:String) = {
+      val token = tokenizer.tokenize(tweet).asScala.map(_.getReading).filter(_ != null)
+      info("token => " + token.mkString(", "))
+      token
+    }
     def randomPickup(list:Seq[String]) = {
       if(list.isEmpty){
         None
@@ -99,7 +102,14 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
   }
 
 
-  override def onFriendList(friendIds: Array[Long]) = {
+  override def onFriendList(friendIds: Array[Long]) {
+    info("onFriendList size:" + friendIds.size)
+    friendIds.foreach(info)
+  }
+
+  override def onFollow(source: User, followedUser: User) {
+    info("onFollow => source : @" + source.getScreenName +
+                    " target : @" + followedUser.getScreenName)
   }
 
   override def onStatus(status:Status) {
@@ -136,7 +146,7 @@ class YanasheUserStreamListener extends UserStreamAdapter with Loggable {
     /* statusとかの情報を表示. */
     printStatus(status)
 
-    info(capturedTime("diff time => "))
+    info(capturedTime("[diff time] => "))
   }
 }
 

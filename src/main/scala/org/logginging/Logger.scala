@@ -7,28 +7,28 @@ trait Loggable {
   val out = System.out
   val err = System.err
 
-  val befor = "["
-  val after = "]"
-
-  val infoMsg = befor + "info" + after
-  val debugMsg = befor + "debug" + after
-  val errorMsg = befor + "debug" + after
-
   private def now() = new java.util.Date()
 
-  private def logMsg(out: PrintStream, level: String)(msg: String) = {
-    out.println("[" + now + "]"  + level + msg)
+  private def logMsg(level: Int, msg: Any) = {
+    def log(out: PrintStream, msg:Any) = {
+      out.println("[" + now + "]" + msg)
+    }
+    level match {
+      case 0 => log(out, "[info]" + msg)
+      case 1 => log(out, "[debug]" + msg)
+      case 2 => log(out, "[error]" + msg)
+      case _ => log(out, "[unknown]" + msg)
+    }
   }
 
-  def info(msg: String) = logMsg(out, infoMsg)_
-  def debug(msg: String) = logMsg(out, debugMsg)_
-  def error(msg: String) = logMsg(err, errorMsg)_
 
-
+  def info(msg: Any) = logMsg(0, msg)
+  def debug(msg: Any) = logMsg(1, msg)
+  def error(msg: Any) = logMsg(2, msg)
 
 
   /* utils */
-  def captureTime(start: Long)(end: Long)(msg: String) = {
+  def captureTime(start: Long)(end: Long)(msg: Any) = {
       def makeTimes(diffNs: Long) = {
         Map(
           "ns" -> diffNs,
