@@ -21,7 +21,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
     reload.set(true)
   }
 
-  private def reloadMatcher() = {
+  private def reloadMatcher():List[ResponseMatcher] = {
     try{
      readJson("/response.json").convertTo[List[ResponseMatcher]]
    }catch{
@@ -44,10 +44,11 @@ class YanasheUserStreamListener extends UserStreamAdapter
       tokens.map(_.getReading).filter(_ != null)
     }
     def randomPickup(list:Seq[String]) = {
-      if(list.isEmpty){
-        None
-      }else{
-        Some(list(rand.nextInt(list.size)))
+      val size = list.size
+      size match {
+        case 0 => None
+        case 1 => Some(list(0))
+        case _ => Some(list(rand.nextInt(size)))
       }
     }
     randomPickup(takeResponseList(splitToken(getText(status))))
@@ -63,8 +64,9 @@ class YanasheUserStreamListener extends UserStreamAdapter
     }
   }
 
-  def reply(text:String, replyTo:Status) = {
-    val status =  new StatusUpdate("@" + replyTo.getUser().getScreenName + " " + text)
+  def reply(text:String, replyTo:Status): Option[Status] = {
+    val status =  new StatusUpdate("@" + replyTo.getUser().getScreenName
+          + " " + text)
       .inReplyToStatusId(replyTo.getId)
     try {
       Some(twitter.updateStatus(status))
@@ -80,27 +82,27 @@ class YanasheUserStreamListener extends UserStreamAdapter
   * statusは必ず存在するが、replyは存在するかどうかわからないので
   * Optionにする.
   */
-  def captureStatus(reply:Option[Status])(status:Status) = {
+  def captureStatus(status: Status)(reply: Option[Status])(msg: Any): String = {
     // 必要な物だけ抽出.
-    def formatStatus(status:Option[Status]) = {
-      status match {
-        case Some(s) =>
-         Map(
-           "text" -> s.getText,
-           "createdAd" -> s.getCreatedAt.toString,
-           "id" -> s.getId.toString,
-           "userId" -> s.getUser().getId.toString,
-           "ScreenName" -> s.getUser().getScreenName
+      def formatStatus(status: Status): String = {
+        Map(
+          "text" -> status.getText,
+          "createdAd" -> status.getCreatedAt.toString,
+          "id" -> status.getId.toString,
+          "userId" -> status.getUser().getId.toString,
+          "ScreenName" -> status.getUser().getScreenName
 
-         ).mkString(", ")
-        case None => "None"
-      }
+        ).mkString(", ")
     }
-    val msg = Map(
-      "[Status]" -> formatStatus(Some(status)),
-      "[Reply]" -> formatStatus(reply)
+    msg + Map(
+      "[Receive]" -> formatStatus(status),
+      "[Reply]" -> {
+        reply match {
+          case Some(s) => formatStatus(s)
+          case None    => "None"
+        }
+      }
     ).mkString(", ")
-    info(msg)
   }
 
 
@@ -126,12 +128,14 @@ class YanasheUserStreamListener extends UserStreamAdapter
       reload.set(false)
     }
 
-    val printStatus = takeResponse(status) match {
-      case Some(response) =>
-        captureStatus(reply(response, status))_
-      case None => /* ignore */
-        captureStatus(None)_
+    val capturedStatus = captureStatus(status)_
+
+
+    val response = takeResponse(status) match {
+      case Some(response) => reply(response, status)
+      case None => None
     }
+
 
     /*
       処理に掛かった時間を表示.
@@ -141,7 +145,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
      val capturedTime = capturedStart(System.nanoTime)
 
     /* statusとかの情報を表示. */
-    printStatus(status)
+    info(capturedStatus(response)("[Status] => "))
     info(capturedTime("[Diff time] => "))
   }
 }
