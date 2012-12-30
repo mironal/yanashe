@@ -27,7 +27,7 @@ trait Loggable {
 
 
   /* utils */
-  def captureTime(start: Long)(end: Long)(msg: Any) = {
+  def timeCapture(start: Long)(end: Long)(msg: Any) = {
     def makeTimes(diffNs: Long) = {
       Map(
         "ns" -> diffNs,

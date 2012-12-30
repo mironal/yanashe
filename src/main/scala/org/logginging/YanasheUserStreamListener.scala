@@ -71,50 +71,40 @@ class YanasheUserStreamListener extends UserStreamAdapter
     } catch {
       case e =>
       /* とりあえずプリントしとく. */
-      e.printStackTrace
+      error(e.getMessage)
       None
     }
   }
 
+  /*
+  * statusは必ず存在するが、replyは存在するかどうかわからないので
+  * Optionにする.
+  */
+  def captureStatus(reply:Option[Status])(status:Status) = {
+    // 必要な物だけ抽出.
+    def formatStatus(status:Option[Status]) = {
+      status match {
+        case Some(s) =>
+         Map(
+           "text" -> s.getText,
+           "createdAd" -> s.getCreatedAt.toString,
+           "id" -> s.getId.toString,
+           "userId" -> s.getUser().getId.toString,
+           "ScreenName" -> s.getUser().getScreenName
+
+         ).mkString(", ")
+        case None => "None"
+      }
+    }
+    val msg = Map(
+      "[Status]" -> formatStatus(Some(status)),
+      "[Reply]" -> formatStatus(reply)
+    ).mkString(", ")
+    info(msg)
+  }
+
 
   override def onStatus(status:Status) {
-    /*
-     * statusは必ず存在するが、replyは存在するかどうかわからないので
-     * Optionにする.
-     */
-    def captureStatus(reply:Option[Status])(status:Status) = {
-      // 必要な物だけ抽出.
-      def formatStatus(status:Option[Status]) = {
-        status match {
-          case Some(s) =>
-          Map(
-            "text" -> s.getText,
-            "createdAd" -> s.getCreatedAt.toString,
-            "id" -> s.getId.toString,
-            "userId" -> s.getUser().getId.toString,
-            "ScreenName" -> s.getUser().getScreenName
-
-          ).mkString(", ")
-          case None => "None"
-        }
-      }
-      val msg = Map(
-        "[Status]" -> formatStatus(Some(status)),
-        "[Seply]" -> formatStatus(reply)
-      ).mkString(", ")
-      info(msg)
-    }
-
-    def captureTime(start:Long)(end:Long) = {
-      def makeTimes(diffNs: Long) = {
-        Map(
-          "ns" -> diffNs,
-          "us" -> diffNs / 1000,
-          "ms" -> diffNs / 1000000
-        ).mkString(", ")
-      }
-      info("[Time diff] => " + makeTimes(end - start))
-    }
 
 
     /* Retweetや自分のツイートには反応しない.*/
@@ -126,9 +116,8 @@ class YanasheUserStreamListener extends UserStreamAdapter
       info("[Tweet by me] => ")
       return
     }
-
     /* 処理開始時刻をキャプチャ. */
-    val printTime = captureTime(System.nanoTime)_
+    val capturedStart = timeCapture(System.nanoTime)_
 
     /* matcher再読み込み. */
     if(reload.get){
@@ -149,10 +138,11 @@ class YanasheUserStreamListener extends UserStreamAdapter
       標準出力に掛かった時間は含めたくないので
       このタイミングで実行.
      */
-    printTime(System.nanoTime)
+     val capturedTime = capturedStart(System.nanoTime)
 
     /* statusとかの情報を表示. */
     printStatus(status)
+    info(capturedTime("[Diff time] => "))
   }
 }
 
