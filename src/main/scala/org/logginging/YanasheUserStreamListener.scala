@@ -40,7 +40,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
       matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
     def splitToken(tweet:String): Seq[String] = {
       val tokens = tokenizer.tokenize(tweet).asScala
-      tokens.foreach(x => info("[token] => " +  x.getAllFeatures))
+      tokens.foreach(x => info("[Token] => " +  x.getAllFeatures))
       tokens.map(_.getReading).filter(_ != null)
     }
     def randomPickup(list:Seq[String]) = {
@@ -99,8 +99,8 @@ class YanasheUserStreamListener extends UserStreamAdapter
         }
       }
       val msg = Map(
-        "[status]" -> formatStatus(Some(status)),
-        "[reply]" -> formatStatus(reply)
+        "[Status]" -> formatStatus(Some(status)),
+        "[Seply]" -> formatStatus(reply)
       ).mkString(", ")
       info(msg)
     }
