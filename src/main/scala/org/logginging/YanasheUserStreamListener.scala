@@ -34,7 +34,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
 
   val tokenizer = Tokenizer.builder().build()
 
-  private def takeResponse(status:Status) = {
+  private def chooseResponse(status:Status) = {
     def getText(status:Status) = status.getText
     def takeResponseList(token:Seq[String]) =
       matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
@@ -108,7 +108,6 @@ class YanasheUserStreamListener extends UserStreamAdapter
 
   override def onStatus(status:Status) {
 
-
     /* Retweetや自分のツイートには反応しない.*/
     if(status.isRetweet){
       info("[Is Retweet] => ")
@@ -130,8 +129,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
 
     val capturedStatus = captureStatus(status)_
 
-
-    val response = takeResponse(status) match {
+    val response = chooseResponse(status) match {
       case Some(response) => reply(response, status)
       case None => None
     }
