@@ -13,13 +13,9 @@ import spray.json._
  */
 case class ResponseMatcher(keyword:String, responses:Seq[String]) {
 
-  def regex = keyword.r
 
   def matchMe(token:String) = {
-    regex.findFirstIn(token) match {
-      case Some(x) => true
-      case None => false
-    }
+    token.matches(keyword)
   }
 
   def matchMeAny(tokens:Seq[String]) = tokens.exists(matchMe)

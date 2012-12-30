@@ -8,7 +8,6 @@ class ResponseMatcherTest extends FunSuite {
     val m = ResponseMatcher("hoge", Seq("hoge0", "hoge1"))
     assert(m.matchMe("hoge") == true)
     assert(m.matchMe("huga") == false)
-    assert(m.matchMe("hogehoge") == true)
   }
 
 
