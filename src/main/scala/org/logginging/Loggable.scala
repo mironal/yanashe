@@ -16,8 +16,8 @@ trait Loggable {
     level match {
       case 0 => log(out,  "[info]" + msg)
       case 1 => log(out,  "[debug]" + msg)
-      case 2 => log(out,  "[error]" + msg)
-      case _ => log(out,  "[unknown]" + msg)
+      case 2 => log(err,  "[error]" + msg)
+      case _ => log(err,  "[unknown]" + msg)
     }
   }
 
