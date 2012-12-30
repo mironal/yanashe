@@ -7,14 +7,15 @@ import JsonProtocol._
 import org.atilika.kuromoji._
 import scala.collection.JavaConverters._
 
-class YanasheUserStreamListener extends UserStreamAdapter {
+class YanasheUserStreamListener extends UserStreamAdapter
+  with Loggable {
 
   val twitter = TwitterFactory.getSingleton();
   val myId = twitter.getId
   val rand = scala.util.Random
   val reload = new java.util.concurrent.atomic.AtomicBoolean
 
-  var matcher = reloadMatcher()//readJson("/response.json").convertTo[List[ResponseMatcher]]
+  var matcher = reloadMatcher()
 
   def requestReloadMatcher() {
     reload.set(true)
@@ -26,7 +27,7 @@ class YanasheUserStreamListener extends UserStreamAdapter {
    }catch{
      case e =>
       /* 読み込みに失敗したら空のリストを返す. */
-      printMsg("json reload error" + e.getMessage)
+      error("json reload error" + e.getMessage)
       List[ResponseMatcher]()
    }
   }
@@ -37,8 +38,11 @@ class YanasheUserStreamListener extends UserStreamAdapter {
     def getText(status:Status) = status.getText
     def takeResponseList(token:Seq[String]) =
       matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
-    def splitToken(tweet:String) =
-      tokenizer.tokenize(tweet).asScala.map(_.getReading).filter(_ != null)
+    def splitToken(tweet:String): Seq[String] = {
+      val tokens = tokenizer.tokenize(tweet).asScala
+      tokens.foreach(x => info("[token] => " +  x.getAllFeatures))
+      tokens.map(_.getReading).filter(_ != null)
+    }
     def randomPickup(list:Seq[String]) = {
       if(list.isEmpty){
         None
@@ -72,10 +76,6 @@ class YanasheUserStreamListener extends UserStreamAdapter {
     }
   }
 
-  private def printMsg(msg:String) = {
-    val date = new java.util.Date()
-    println("[" + date + "]" + msg)
-  }
 
   override def onStatus(status:Status) {
     /*
@@ -91,16 +91,18 @@ class YanasheUserStreamListener extends UserStreamAdapter {
             "text" -> s.getText,
             "createdAd" -> s.getCreatedAt.toString,
             "id" -> s.getId.toString,
-            "userId" -> s.getUser().getId.toString
+            "userId" -> s.getUser().getId.toString,
+            "ScreenName" -> s.getUser().getScreenName
+
           ).mkString(", ")
           case None => "None"
         }
       }
       val msg = Map(
-        "status" -> formatStatus(Some(status)),
-        "reply" -> formatStatus(reply)
+        "[status]" -> formatStatus(Some(status)),
+        "[reply]" -> formatStatus(reply)
       ).mkString(", ")
-      printMsg(msg)
+      info(msg)
     }
 
     def captureTime(start:Long)(end:Long) = {
@@ -111,27 +113,26 @@ class YanasheUserStreamListener extends UserStreamAdapter {
           "ms" -> diffNs / 1000000
         ).mkString(", ")
       }
-      printMsg("time diff => " + makeTimes(end - start))
+      info("[Time diff] => " + makeTimes(end - start))
     }
 
 
     /* Retweetや自分のツイートには反応しない.*/
     if(status.isRetweet){
-      printMsg("is Retweet")
+      info("[Is Retweet] => ")
       return
     }
     if(status.getUser.getId == myId){
-      printMsg("tweet by me")
+      info("[Tweet by me] => ")
       return
     }
-
 
     /* 処理開始時刻をキャプチャ. */
     val printTime = captureTime(System.nanoTime)_
 
     /* matcher再読み込み. */
     if(reload.get){
-      printMsg("reload matcher")
+      info("[Reload matcher]")
       matcher = reloadMatcher()
       reload.set(false)
     }
