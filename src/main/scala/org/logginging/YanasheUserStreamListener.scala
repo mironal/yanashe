@@ -78,22 +78,23 @@ class YanasheUserStreamListener extends UserStreamAdapter
     }
   }
 
+  def formatStatus(status: Status): String = {
+    Map(
+      "text" -> status.getText,
+      "createdAd" -> status.getCreatedAt.toString,
+      "id" -> status.getId.toString,
+      "userId" -> status.getUser().getId.toString,
+      "ScreenName" -> status.getUser().getScreenName
+
+    ).mkString(", ")
+  }
+
   /*
   * statusは必ず存在するが、replyは存在するかどうかわからないので
   * Optionにする.
   */
   def captureStatus(status: Status)(reply: Option[Status])(msg: Any): String = {
     // 必要な物だけ抽出.
-      def formatStatus(status: Status): String = {
-        Map(
-          "text" -> status.getText,
-          "createdAd" -> status.getCreatedAt.toString,
-          "id" -> status.getId.toString,
-          "userId" -> status.getUser().getId.toString,
-          "ScreenName" -> status.getUser().getScreenName
-
-        ).mkString(", ")
-    }
     msg + Map(
       "[Receive]" -> formatStatus(status),
       "[Reply]" -> {
@@ -105,16 +106,15 @@ class YanasheUserStreamListener extends UserStreamAdapter
     ).mkString(", ")
   }
 
-
   override def onStatus(status:Status) {
 
     /* Retweetや自分のツイートには反応しない.*/
     if(status.isRetweet){
-      info("[Is Retweet] => ")
+      info("[Is Retweet] => " + formatStatus(status))
       return
     }
     if(status.getUser.getId == myId){
-      info("[Tweet by me] => ")
+      info("[Tweet by me] => " + formatStatus(status))
       return
     }
     /* 処理開始時刻をキャプチャ. */
@@ -133,7 +133,6 @@ class YanasheUserStreamListener extends UserStreamAdapter
       case Some(response) => reply(response, status)
       case None => None
     }
-
 
     /*
       処理に掛かった時間を表示.
