@@ -13,12 +13,11 @@ import spray.json._
  */
 case class ResponseMatcher(keyword:String, responses:Seq[String]) {
 
-
-  def matchMe(token:String) = {
+  def matchMe(token:String): Boolean = {
     token.matches(keyword)
   }
 
-  def matchMeAny(tokens:Seq[String]) = tokens.exists(matchMe)
+  def matchMeAny(tokens:Seq[String]):Boolean = tokens.exists(matchMe)
 }
 
 object JsonProtocol extends DefaultJsonProtocol {

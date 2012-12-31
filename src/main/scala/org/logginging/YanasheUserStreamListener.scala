@@ -85,7 +85,6 @@ class YanasheUserStreamListener extends UserStreamAdapter
       "id" -> status.getId.toString,
       "userId" -> status.getUser().getId.toString,
       "ScreenName" -> status.getUser().getScreenName
-
     ).mkString(", ")
   }
 
@@ -139,7 +138,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
       標準出力に掛かった時間は含めたくないので
       このタイミングで実行.
      */
-     val capturedTime = capturedStart(System.nanoTime)
+    val capturedTime = capturedStart(System.nanoTime)
 
     /* statusとかの情報を表示. */
     info(capturedStatus(response)("[Status] => "))
