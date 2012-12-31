@@ -1,3 +1,4 @@
 target/
 twitter4j.properties
+.DS_Store
 
