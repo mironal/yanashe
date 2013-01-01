@@ -3,6 +3,9 @@ package org.logginging
 import org.scalatest.FunSuite
 
 class ResponseMatcherTest extends FunSuite {
+  test("read from json") {
+
+  }
 
   test("simple match") {
     val m = ResponseMatcher("hoge", Seq("hoge0", "hoge1"))

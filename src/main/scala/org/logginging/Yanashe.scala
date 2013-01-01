@@ -15,7 +15,6 @@ object Yanashe extends App {
       case "q" =>
        twitterStream.shutdown
        case "r" =>
-        listener.requestReloadMatcher
       case _ => waitInput(readLine())
     }
   }

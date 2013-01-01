@@ -2,7 +2,6 @@ package org.logginging
 
 import spray.json._
 
-
 abstract class Matcher(responses: Seq[String]) {
   def matchMe(token: String): Boolean
   def matchMeAny(tokens: Seq[String]): Boolean = tokens.exists(matchMe)
@@ -23,7 +22,7 @@ abstract class Matcher(responses: Seq[String]) {
  * ]
  *
  */
-case class ResponseMatcher(keyword: String, responses: Seq[String])
+case class ReadingMatcher(keyword: String, responses: Seq[String])
   extends Matcher(responses){
 
   def matchMe(token: String): Boolean = {
@@ -33,6 +32,6 @@ case class ResponseMatcher(keyword: String, responses: Seq[String])
 }
 
 object JsonProtocol extends DefaultJsonProtocol {
-  implicit val rslvFormat = jsonFormat2(ResponseMatcher)
+  implicit val rslvFormat = jsonFormat2(ReadingMatcher)
 }
 
