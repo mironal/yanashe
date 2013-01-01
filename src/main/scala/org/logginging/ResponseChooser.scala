@@ -17,7 +17,7 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
       val tokens = tokenizer.tokenize(text).asScala
       val log = "\n" + tokens.map(x => "[Token] => "
                                +  x.getAllFeatures).mkString("\n")
-      info("[Token] => " + log)
+      info("[Tokens] => " + log)
       tokens
     }
     def random(list:Seq[String]): Option[String] = {
