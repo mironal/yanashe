@@ -15,7 +15,9 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
     val tokenize = (text:String) => {
       val tokenizer = Tokenizer.builder().build()
       val tokens = tokenizer.tokenize(text).asScala
-      tokens.foreach(x => info("[Token] => " +  x.getAllFeatures))
+      val log = "\n" + tokens.map(x => "[Token] => "
+                               +  x.getAllFeatures).mkString("\n")
+      info("[Token] => " + log)
       tokens
     }
     def random(list:Seq[String]): Option[String] = {
@@ -39,7 +41,6 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
       case Some(json) => json.convertTo[List[ReadingMatcher]]
       case None => emptyMatcher
     }
-
     readingMatcher
   }
 
