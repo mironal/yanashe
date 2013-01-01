@@ -70,7 +70,6 @@ class YanasheUserStreamListener extends UserStreamAdapter
     val capturedStatus = captureStatus(status)_
     val choose = getText andThen chooser.takeResponse
 
-
     val response =  choose(status) match {
       case Some(response) => reply(response, status)
       case None => None
