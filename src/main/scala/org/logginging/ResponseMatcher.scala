@@ -2,6 +2,18 @@ package org.logginging
 
 import spray.json._
 
+
+abstract class Matcher(responses: Seq[String]) {
+  def matchMe(token: String): Boolean
+  def matchMeAny(tokens: Seq[String]): Boolean = tokens.exists(matchMe)
+  def takeResponses(tokens: Seq[String]): Option[Seq[String]] = {
+    matchMeAny(tokens) match {
+      case true => Some(responses)
+      case false => None
+    }
+  }
+}
+
 /*
  *
  * 返答用のファイルのフォーマット
@@ -11,13 +23,13 @@ import spray.json._
  * ]
  *
  */
-case class ResponseMatcher(keyword:String, responses:Seq[String]) {
+case class ResponseMatcher(keyword: String, responses: Seq[String])
+  extends Matcher(responses){
 
-  def matchMe(token:String): Boolean = {
+  def matchMe(token: String): Boolean = {
     token.matches(keyword)
   }
 
-  def matchMeAny(tokens:Seq[String]):Boolean = tokens.exists(matchMe)
 }
 
 object JsonProtocol extends DefaultJsonProtocol {

@@ -21,29 +21,61 @@ class YanasheUserStreamListener extends UserStreamAdapter
     reload.set(true)
   }
 
-  private def reloadMatcher():List[ResponseMatcher] = {
+  private def reloadMatcher():List[Matcher] = {
     try{
      readJson("/response.json").convertTo[List[ResponseMatcher]]
    }catch{
      case e =>
       /* 読み込みに失敗したら空のリストを返す. */
       error("json reload error" + e.getMessage)
-      List[ResponseMatcher]()
+      List[Matcher]()
    }
   }
 
   val tokenizer = Tokenizer.builder().build()
 
-  private def chooseResponse(status:Status) = {
-    def getText(status:Status) = status.getText
-    def takeResponseList(token:Seq[String]) =
-      matcher.filter(_.matchMeAny(token)).map(_.responses).flatten
-    def splitToken(tweet:String): Seq[String] = {
-      val tokens = tokenizer.tokenize(tweet).asScala
-      tokens.foreach(x => info("[Token] => " +  x.getAllFeatures))
-      tokens.map(_.getReading).filter(_ != null)
+  // 辞書に登録されている単語のみ抽出.
+  private val knownList = (tokens: Seq[Token]) => tokens.filter(_.isKnown)
+  /*
+   * readingのみ抽出してList[String]を作る.
+   * readingとは読みをカタカナで表記したもの. 山 => ヤマ
+   */
+  private val readingList = (tokens: Seq[Token]) => tokens.map(_.getReading)
+  /*
+   * surfaceFromのみ抽出してList[String]を作る.
+   * surfaceFromとは解析した結果そのままの文字. 山
+   */
+  private val surfaceFromList = (tokens: Seq[Token]) =>
+                                                tokens.map(_.getSurfaceForm)
+
+  private def makeReadingList(tokens: Seq[Token]): Seq[String] = {
+    /* tokensをknownListにしてからreadingListにする */
+    (knownList andThen readingList)(tokens)
+  }
+
+  private val getText = (status: Status) => status.getText
+
+
+  private def pickupResponses(machers: List[Matcher])(tokens: Seq[String]): List[String] = {
+    val take = (m: Matcher, tokens: Seq[String]) =>
+        m.takeResponses(tokens).getOrElse(Seq[String]())
+
+    def joinResponse(matchers: List[Matcher], responses: List[String]): List[String] = {
+      matchers match {
+        case Nil => responses
+        case x::xs => joinResponse(xs, responses ++ take(x, tokens))
+      }
     }
-    def randomPickup(list:Seq[String]) = {
+    joinResponse(machers, List())
+  }
+
+  private def chooseResponse(status:Status):Option[String] = {
+    def tokenize(text:String): Seq[Token] = {
+      val tokens = tokenizer.tokenize(text).asScala
+      tokens.foreach(x => info("[Token] => " +  x.getAllFeatures))
+      tokens
+    }
+    def random(list:Seq[String]): Option[String] = {
       val size = list.size
       size match {
         case 0 => None
@@ -51,7 +83,9 @@ class YanasheUserStreamListener extends UserStreamAdapter
         case _ => Some(list(rand.nextInt(size)))
       }
     }
-    randomPickup(takeResponseList(splitToken(getText(status))))
+    val pickup = pickupResponses(matcher)_
+    val choose = getText andThen tokenize andThen makeReadingList andThen pickup andThen random
+    choose(status)
   }
 
   def readJson(filename:String) = {
