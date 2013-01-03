@@ -12,9 +12,9 @@ import scala.collection.JavaConverters._
 case class ResponseChooser() extends Loggable with ResourceReadalbe {
 
   def takeResponse(text: String): Option[String] = {
-    val tokenize = (text:String) => {
+    val tokenize = (text: String) => {
       val tokenizer = Tokenizer.builder().build()
-      val tokens = tokenizer.tokenize(text).asScala
+      val tokens = tokenizer.tokenize(text).asScala.toList
       val log = "\n" + tokens.map(x => "[Token] => "
                                +  x.getAllFeatures).mkString("\n")
       info("[Tokens] => " + log)
@@ -29,51 +29,73 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
         case _ => Some(list(rand.nextInt(size)))
       }
     }
+
+    val readingList = (tokenize andThen makeReadingList)(text)
+    val surfaceFormList = (tokenize andThen makeSurfaceFormList)(text)
+
+    val pickupByReading = pickupResponses(readingList) _
+    val pickupBySurface = pickupResponses(surfaceFormList) _
+
     val matchers = takeMatcher()
-    val pickup = pickupResponses(matchers)_
-    val choose = tokenize andThen makeReadingList andThen pickup andThen random
-    choose(text)
+
+    val responses = matchers.map{ x: Matcher =>
+      x match {
+        case m: ReadingMatcher => pickupByReading(m)
+        case m: SurfaceFromMatcher => pickupBySurface(m)
+        case m => error("[Unknon Matcher] => " + m); Seq[String]()
+      }
+    }.flatten
+    random(responses)
   }
 
   private def takeMatcher(): List[Matcher] = {
     val emptyMatcher = List[Matcher]()
     val readingMatcher = readJson("/response.json") match {
       case Some(json) => json.convertTo[List[ReadingMatcher]]
-      case None => emptyMatcher
+      case None => error("[takeMatcher] ReadingMatcher is empty."); emptyMatcher
     }
-    readingMatcher
+
+    val surfaceFormMatcher = readJson("/surfaceForm.json") match {
+      case Some(json) => json.convertTo[List[SurfaceFromMatcher]]
+      case None => error("[takeMatcher] SurfaceFormMatcher is empty."); emptyMatcher
+    }
+    readingMatcher ++ surfaceFormMatcher
   }
 
-  // 辞書に登録されている単語のみ抽出.
-  private val knownList = (tokens: Seq[Token]) => tokens.filter(_.isKnown)
-  /*
-   * readingのみ抽出してList[String]を作る.
-   * readingとは読みをカタカナで表記したもの. 山 => ヤマ
-   */
-  private val readingList = (tokens: Seq[Token]) => tokens.map(_.getReading)
-  /*
-   * surfaceFromのみ抽出してList[String]を作る.
-   * surfaceFromとは解析した結果そのままの文字. 山
-   */
-  private val surfaceFromList = (tokens: Seq[Token]) =>
-                                                tokens.map(_.getSurfaceForm)
 
-  private def makeReadingList(tokens: Seq[Token]): Seq[String] = {
+  private def makeReadingList(tokens: List[Token]): List[String] = {
     /* tokensをknownListにしてからreadingListにする */
     (knownList andThen readingList)(tokens)
   }
 
-  private def pickupResponses(machers: List[Matcher])(tokens: Seq[String]): List[String] = {
-    val take = (m: Matcher, tokens: Seq[String]) =>
-        m.takeResponses(tokens).getOrElse(Seq[String]())
-
-    def joinResponse(matchers: List[Matcher], responses: List[String]): List[String] = {
-      matchers match {
-        case Nil => responses
-        case x::xs => joinResponse(xs, responses ++ take(x, tokens))
-      }
-    }
-    joinResponse(machers, List())
+  private def makeSurfaceFormList(tokens: List[Token]): List[String] = {
+    (knownList andThen surfaceFromList)(tokens)
   }
 
+  private def pickupResponses(tokens: List[String])(matcher: Matcher): Seq[String] = {
+    val take = (token: String) => {
+      matcher.takeResponses(token).getOrElse(Seq[String]())
+    }
+    def join(tokens: List[String], response: Seq[String]): Seq[String] = {
+      tokens match {
+        case Nil => response
+        case x::xs => join(xs, response ++ take(x))
+      }
+    }
+    join(tokens, Seq[String]())
+  }
+
+  // 辞書に登録されている単語のみ抽出.
+  private val knownList = (tokens: List[Token]) => tokens.filter(_.isKnown)
+  /*
+   * readingのみ抽出してList[String]を作る.
+   * readingとは読みをカタカナで表記したもの. 山 => ヤマ
+   */
+  private val readingList = (tokens: List[Token]) => tokens.map(_.getReading)
+  /*
+   * surfaceFromのみ抽出してList[String]を作る.
+   * surfaceFromとは解析した結果そのままの文字. 山
+   */
+  private val surfaceFromList = (tokens: List[Token]) =>
+                                                tokens.map(_.getSurfaceForm)
 }
