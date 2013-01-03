@@ -82,7 +82,16 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
         case x::xs => join(xs, response ++ take(x))
       }
     }
-    join(tokens, Seq[String]())
+    val resp = join(tokens, Seq[String]())
+    info("[PickupResponses] " + matcher + " => " + formatResponse(resp))
+    resp
+  }
+
+  private def formatResponse(response: Seq[String]): String = {
+    response.size match {
+      case 0 => "Empty"
+      case _ => response.mkString(", ")
+    }
   }
 
   // 辞書に登録されている単語のみ抽出.
