@@ -38,7 +38,7 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
 
     val matchers = takeMatcher()
 
-    val responses = matchers.map{ x: Matcher =>
+    val responses = matchers.map{ x: Matcher[_] =>
       x match {
         case m: ReadingMatcher => pickupByReading(m)
         case m: SurfaceFromMatcher => pickupBySurface(m)
@@ -48,8 +48,8 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
     random(responses)
   }
 
-  private def takeMatcher(): List[Matcher] = {
-    val emptyMatcher = List[Matcher]()
+  private def takeMatcher(): List[Matcher[_]] = {
+    val emptyMatcher = List[Matcher[_]]()
     val readingMatcher = readJson("/response.json") match {
       case Some(json) => json.convertTo[List[ReadingMatcher]]
       case None => error("[takeMatcher] ReadingMatcher is empty."); emptyMatcher
@@ -72,7 +72,7 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
     (knownList andThen surfaceFromList)(tokens)
   }
 
-  private def pickupResponses(tokens: List[String])(matcher: Matcher): Seq[String] = {
+  private def pickupResponses(tokens: List[String])(matcher: Matcher[String]): Seq[String] = {
     val take = (token: String) => {
       matcher.takeResponses(token).getOrElse(Seq[String]())
     }

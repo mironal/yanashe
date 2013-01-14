@@ -13,7 +13,6 @@ class SimpleMatcherTest extends FunSuite {
     assert(m.matchMe("huga") == false)
   }
 
-
   test("regex match") {
     val m = SimpleMatcher("^hoge$", Seq("hoge0", "hoge1"))
     assert(m.matchMe("hoge") == true)
@@ -26,20 +25,6 @@ class SimpleMatcherTest extends FunSuite {
     assert(m.matchMe("hoge") == true)
     assert(m.matchMe("huga") == true)
     assert(m.matchMe("hogehoge") == false)
-  }
-
-  test("simple match token") {
-    val token = Seq("hogehoge", "hoge", "huga")
-
-    val m = SimpleMatcher("hoge", Seq("hoge0", "hoge1"))
-    assert(m.matchMeAny(token) == true)
-  }
-
-  test("simple match token no match") {
-    val token = Seq("hogehoge", "hoge", "huga")
-
-    val m = SimpleMatcher("foo", Seq("hoge0", "hoge1"))
-    assert(m.matchMeAny(token) == false)
   }
 
   test("simple match jp") {

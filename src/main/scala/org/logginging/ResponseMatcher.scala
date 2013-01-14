@@ -2,9 +2,9 @@ package org.logginging
 
 import spray.json._
 
-abstract class Matcher(responses: Seq[String]) {
-  def matchMe(token: String): Boolean
-  def takeResponses(token: String): Option[Seq[String]] = {
+abstract class Matcher[A](responses: Seq[String]) {
+  def matchMe(token: A): Boolean
+  def takeResponses(token: A): Option[Seq[String]] = {
     matchMe(token) match {
       case true => Some(responses)
       case false => None
@@ -14,15 +14,20 @@ abstract class Matcher(responses: Seq[String]) {
 
 /* 正規表現によるマッチングを行う.  */
 class SimpleMatcher(keyword: String, responses: Seq[String])
-  extends Matcher(responses){
+  extends Matcher[String](responses){
 
   def matchMe(token: String): Boolean = {
     token.matches(keyword)
   }
 }
 
+object SimpleMatcher {
+  def apply(keyword: String,  responses: Seq[String]) = {
+    new SimpleMatcher(keyword, responses)
+  }
+}
+
 object JsonProtocol extends DefaultJsonProtocol {
-//  implicit val rslvFormat = jsonFormat2(SimpleMatcher)
   implicit val readingFormat = jsonFormat2(ReadingMatcher)
   implicit val surfaceFormat = jsonFormat2(SurfaceFromMatcher)
 }
@@ -62,3 +67,4 @@ case class ReadingMatcher(keyword: String, responses: Seq[String])
  */
 case class SurfaceFromMatcher(keyword: String, responses: Seq[String])
   extends SimpleMatcher(keyword, responses)
+

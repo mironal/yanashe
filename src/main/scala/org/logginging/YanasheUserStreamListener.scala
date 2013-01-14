@@ -86,7 +86,6 @@ class YanasheUserStreamListener extends UserStreamAdapter
     info(capturedStatus(response)("[Status] => "))
     info(capturedTime("[Diff time] => "))
   }
-
   override def onException(ex: Exception) {
     ex.printStackTrace
   }
