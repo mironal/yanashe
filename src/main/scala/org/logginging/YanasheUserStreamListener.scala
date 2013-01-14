@@ -7,6 +7,7 @@ class YanasheUserStreamListener extends UserStreamAdapter
 
   val twitter = TwitterFactory.getSingleton();
   val myId = twitter.getId
+  info("[Start " + getClass.getName + "] => name : " + twitter.getScreenName)
 
   val chooser = ResponseChooser()
 
@@ -53,17 +54,18 @@ class YanasheUserStreamListener extends UserStreamAdapter
     ).mkString(", ")
   }
 
-  override def onStatus(status:Status) {
 
+  override def onStatus(status:Status) {
     /* Retweetや自分のツイートには反応しない.*/
     if(status.isRetweet){
       info("[Is Retweet] => " + formatStatus(status))
       return
     }
-    if(status.getUser.getId == myId){
+    if(isMe(status.getUser)) {
       info("[Tweet by me] => " + formatStatus(status))
       return
     }
+
     /* 処理開始時刻をキャプチャ. */
     val capturedStart = timeCapture(System.nanoTime)_
 
@@ -86,8 +88,32 @@ class YanasheUserStreamListener extends UserStreamAdapter
     info(capturedStatus(response)("[Status] => "))
     info(capturedTime("[Diff time] => "))
   }
+
+  /*
+   *  自動フォロー返し.
+   */
+  override def onFollow(source: User, followedUser: User) {
+    def log(source: User, followedUser: User) = {
+      "[source]:" + formatUser(source) + " " +
+      "[followedUser]:" + formatUser(followedUser)
+    }
+    info("[onFollow] => " + log(source, followedUser))
+    if(isMe(followedUser)){
+      info("[Request create friendship] => " + formatUser(source))
+      twitter.createFriendship(source.getId)
+    }
+  }
+
   override def onException(ex: Exception) {
-    ex.printStackTrace
+    error("[onException] => " + ex.getStackTrace.mkString(", "))
+  }
+
+  private def isMe(user: User): Boolean = {
+    user.getId == myId
+  }
+
+  private def formatUser(user: User) = {
+    user.getScreenName
   }
 }
 
