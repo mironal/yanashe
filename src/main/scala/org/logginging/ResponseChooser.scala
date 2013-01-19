@@ -30,8 +30,10 @@ case class ResponseChooser() extends Loggable with ResourceReadalbe {
       }
     }
 
-    val readingList = (tokenize andThen makeReadingList)(text)
-    val surfaceFormList = (tokenize andThen makeSurfaceFormList)(text)
+    val tokens = tokenize(text)
+
+    val readingList = makeReadingList(tokens)
+    val surfaceFormList = makeSurfaceFormList(tokens)
 
     val pickupByReading = pickupResponses(readingList) _
     val pickupBySurface = pickupResponses(surfaceFormList) _
